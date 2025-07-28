@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <title>게임 시작</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="start.css">
+</head>
+
+<body>
+
+  <div id="start-screen">
+    <img class="background-image" src="image/ChatGPT Image 2025년 7월 17일 오전 11_13_33.png" alt="Game Cover Image">
+    <img id="title-logo" src="image/타이틀.png" alt="Title Logo">
+
+
+
+    <div class="button-container">
+      <button id="start-button">게임시작</button>
+      <button id="description-button">게임설명</button>
+    </div>
+  </div>
+
+  <!-- Backdrop -->
+  <div id="game-help-backdrop"></div>
+
+  <!-- GAME HELP PANEL :: COMPACT ZOO THEME -->
+  <div id="game-help-panel" class="game-help-zoo game-help-zoo--compact" role="dialog" aria-labelledby="gameHelpTitle"
+    aria-modal="true">
+    <button class="game-help-zoo__close" aria-label="닫기">×</button>
+
+    <header class="game-help-zoo__header">
+      <h2 id="gameHelpTitle">게임 방법</h2>
+      <p class="tagline"><strong>너구리 변신을 통해 동물원을 탈출하게 도와주세요!</strong></p>
+      <p class="subline">제스처 ▶ 즉시 변신 &amp; 스킬 자동발동 ▶ 끝나면 다시 너구리로 변신!</p><br>
+    </header>
+
+    <div class="game-help-zoo__body-compact">
+      <!-- 기본 조작 -->
+      <div class="compact-controls">
+        <div class="ctrl"><span>↔</span> 좌/우: 얼굴 좌우 기울이기</div>
+        <div class="ctrl"><span>🦝 </span> 변신: 손동작(좌우반전 가능!)</div>
+      </div>
+
+      <!-- 스킬 표 -->
+      <table class="skill-table" aria-label="변신 제스처 및 스킬">
+        <thead>
+          <tr>
+            <th>제스처</th>
+            <th>동물</th>
+            <th>효과</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td></td>
+            <td>🦝 너구리(기본)</td>
+            <td>기본 달리기</td>
+          </tr>
+          <tr>
+            <td>👍</td>
+            <td>🐘 코끼리</td>
+            <td>나무 부수기</td>
+          </tr>
+          <tr>
+            <td>✌</td>
+            <td>🐇 토끼</td>
+            <td>장애물 뛰어넘는 슈퍼 점프</td>
+          </tr>
+          <tr>
+            <td>✊</td>
+            <td>🐍 뱀</td>
+            <td>독으로 바위 녹이기</td>
+          </tr>
+          <tr>
+            <td><span style="display: inline-block; transform: rotate(180deg);">👆</span></td>
+            <td>🐯 호랑이</td>
+            <td>포효! 사람 도망</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 게이지 -->
+      <div class="compact-gauge">
+        <h3>게이지 진행</h3>
+        <div class="gauge-bar">
+          <span class="gauge-fill" style="width:100%"></span>
+          <div class="gauge-emoji" style="left:25%">🦝</div>
+        </div>
+        <div class="gauge-stage-labels">
+          <span>동물원</span><span></span><span></span><span>동물보호구역</span>
+        </div>
+        <p class="gauge-note">끝까지 살아남아 자연보호구역으로 대피하세요!</p>
+      </div>
+    </div>
+
+    <footer class="game-help-zoo__footer">
+      <button class="game-help-zoo__start-btn" data-action="close">타이틀로 돌아가기</button>
+    </footer>
+  </div>
+
+  <!-- Audio -->
+  <audio id="background-music" src="music/love-and-peace.wav" autoplay loop></audio>
+  <audio id="click-sound" src="music/menu-click-two-tone.mp3"></audio>
+  <audio id="whistle-sound" src="music/whistle.mp3"></audio>
+
+  <!-- Intro Play Overlay -->
+  <div id="intro-overlay" class="intro-overlay">
+    <div class="intro-background">
+      <img class="intro-bg-image" src="image/ChatGPT Image 2025년 7월 17일 오전 11_13_33.png" alt="Game Cover">
+      <img class="intro-title-logo" src="image/타이틀.png" alt="Title Logo">
+    </div>
+    <button id="play-button" class="play-button" aria-label="게임 시작 및 음악 재생">
+      <div class="play-icon">▶</div>
+    </button>
+  </div>
+
+
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div id="loading-text">모델 로딩 중... 0%</div>
+  </div>
+
+  <!-- Three.js Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <script>
+    // ----- Elements -----
+    const startButton = document.getElementById('start-button');
+    const descriptionButton = document.getElementById('description-button');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingText = document.getElementById('loading-text');
+    const backgroundMusic = document.getElementById('background-music');
+    const clickSound = document.getElementById('click-sound');
+    const whistleSound = document.getElementById('whistle-sound');
+
+    const gameHelpBackdrop = document.getElementById('game-help-backdrop');
+    const gameHelpPanel = document.getElementById('game-help-panel');
+    const helpCloseBtn = gameHelpPanel.querySelector('.game-help-zoo__close');
+    const helpStartBtn = gameHelpPanel.querySelector('.game-help-zoo__start-btn');
+
+    // Intro overlay elements
+    const introOverlay = document.getElementById('intro-overlay');
+    const playButton = document.getElementById('play-button');
+
+    const startScreen = document.getElementById('start-screen');
+
+    // 오디오 볼륨 설정 (0.0 ~ 1.0)
+    if (backgroundMusic) backgroundMusic.volume = 0.3; // 배경음악은 조금 낮게
+    if (clickSound) clickSound.volume = 0.8; // 클릭 사운드는 크게
+    if (whistleSound) whistleSound.volume = 0.7; // 휘슬 사운드도 크게
+
+    // 페이지 로드 시 즉시 배경음악 재생 시도
+    function tryPlayBackgroundMusic() {
+      if (backgroundMusic && backgroundMusic.paused) {
+        backgroundMusic.play().catch(e => {
+          console.log("자동재생이 차단되었습니다. 사용자 상호작용을 기다립니다.");
+          // 자동재생이 실패하면 사용자 클릭을 기다림
+          document.addEventListener('click', function handleFirstClick() {
+            backgroundMusic.play().catch(err => console.error("Music playback failed:", err));
+            document.removeEventListener('click', handleFirstClick);
+          }, { once: true });
+        });
+      }
+    }
+
+    // 페이지 로드 완료 시 음악 재생 시도
+    window.addEventListener('load', tryPlayBackgroundMusic);
+
+    // DOM 로드 완료 시에도 시도
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', tryPlayBackgroundMusic);
+    } else {
+      tryPlayBackgroundMusic();
+    }
+
+    // ----- Intro Play Button -----
+    playButton.addEventListener('click', function () {
+      // 클릭 사운드 재생
+      if (clickSound) {
+        clickSound.currentTime = 0;
+        clickSound.play().catch(() => { });
+      }
+
+      // 배경음악 시작
+      if (backgroundMusic) {
+        backgroundMusic.currentTime = 0;
+        backgroundMusic.play().catch(e => console.error("Music playback failed:", e));
+      }
+
+      // 인트로 오버레이 숨기기
+      introOverlay.classList.add('fade-out');
+      setTimeout(() => {
+        introOverlay.style.display = 'none';
+      }, 500);
+    });
+
+    // ----- Loading Manager -----
+    const loadingManager = new THREE.LoadingManager();
+    const gltfLoader = new THREE.GLTFLoader(loadingManager);
+
+    const modelsToPreload = [
+      'animal/raccoon_Walking.glb',
+      'animal/rabbit_Walkng.glb',
+      'animal/tiger_Walking.glb',
+      'animal/snake_animate/scene.gltf',
+      'animal/elephant_Walking.glb',
+      'obstacle/BirchTree_1.gltf',
+      'obstacle/Person.gltf',
+      'obstacle/hole.gltf',
+      'obstacle/Rock.gltf',
+      'background/Bush.gltf',
+      'background/Bush_Large.gltf',
+      'background/Bush_Flowers.gltf',
+      'background/Cloud.glb'
+    ];
+
+    loadingManager.onStart = function (url, itemsLoaded, itemsTotal) {
+      console.log(`Started loading file: ${url} (${itemsLoaded}/${itemsTotal})`);
+    };
+    loadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {
+      const progress = Math.round((itemsLoaded / itemsTotal) * 100);
+      loadingText.innerText = `모델 로딩 중... ${progress}%`;
+    };
+    loadingManager.onLoad = function () {
+      console.log('All models loaded!');
+      loadingOverlay.style.display = 'none';
+      if (backgroundMusic) {
+        backgroundMusic.pause();
+        backgroundMusic.currentTime = 0;
+      }
+      if (whistleSound) {
+        whistleSound.currentTime = 0;
+        whistleSound.play().then(() => {
+          window.location.href = 'index.html';
+        }).catch(e => {
+          console.error("Whistle playback failed:", e);
+          window.location.href = 'index.html';
+        });
+      } else {
+        window.location.href = 'index.html';
+      }
+    };
+    loadingManager.onError = function (url) {
+      console.error('Error loading ' + url);
+      loadingText.innerText = `모델 로딩 실패: ${url}`;
+      loadingOverlay.style.display = 'none';
+      startButton.disabled = false;
+    };
+
+    // ----- Preload function -----
+    function preloadModels() {
+      modelsToPreload.forEach(modelPath => {
+        gltfLoader.load(modelPath, () => { }, undefined, (error) => {
+          console.error(`Error loading ${modelPath}:`, error);
+        });
+      });
+    }
+
+    // ----- Help Panel open/close -----
+    function openHelp() {
+      gameHelpBackdrop.style.display = 'block';
+      gameHelpPanel.classList.add('is-open');
+    }
+    function closeHelp() {
+      gameHelpBackdrop.style.display = 'none';
+      gameHelpPanel.classList.remove('is-open');
+    }
+
+    descriptionButton.addEventListener('click', () => {
+      if (clickSound) { clickSound.currentTime = 0; clickSound.play().catch(() => { }); }
+      openHelp();
+    });
+    helpCloseBtn.addEventListener('click', () => {
+      if (clickSound) { clickSound.currentTime = 0; clickSound.play().catch(() => { }); }
+      closeHelp();
+    });
+    gameHelpBackdrop.addEventListener('click', closeHelp);
+    // 하단 버튼: 타이틀로 돌아가기 (게임 시작 호출 안 함)
+    helpStartBtn.addEventListener('click', () => {
+      if (clickSound) { clickSound.currentTime = 0; clickSound.play().catch(() => { }); }
+      closeHelp();
+    });
+
+    // ----- Emoji Animation -----
+    function animateGaugeEmoji() {
+      const emojiElement = document.querySelector('.gauge-emoji');
+      if (!emojiElement) return;
+
+      const emojis = ['🦝', '🐇', '🐯', '🐍', '🐘'];
+      let currentIndex = 0;
+
+      setInterval(() => {
+        emojiElement.textContent = emojis[currentIndex];
+        currentIndex = (currentIndex + 1) % emojis.length;
+      }, 1000); // 1초마다 이모지 변경
+    }
+
+    // 게임설명창이 열릴 때 애니메이션 시작
+    descriptionButton.addEventListener('click', () => {
+      if (clickSound) { clickSound.currentTime = 0; clickSound.play().catch(() => { }); }
+      openHelp();
+      setTimeout(animateGaugeEmoji, 100); // 창이 열린 후 애니메이션 시작
+    });
+
+
+
+
+
+
+
+    // ----- Start button -----
+    startButton.addEventListener('click', function () {
+      if (clickSound) { clickSound.currentTime = 0; clickSound.play().catch(() => { }); }
+      startButton.disabled = true;
+      loadingOverlay.style.display = 'flex';
+      preloadModels();
+    });
+
+
+  </script>
+</body>
+
+</html>

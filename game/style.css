@@ -1,0 +1,281 @@
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #1f2937;
+    color: white;
+  }
+  #video-widget-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.5));
+    padding: 15px;
+    border-radius: 10px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 {
+    margin-top: 0;
+    margin-bottom: 15px; 
+    font-size: 1.5em;
+  }
+  #main-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+  }
+  #container {
+    position: relative;
+    width: 300px;
+    height: 225px;
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: white;
+  }
+  #video, #canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  #video { transform: scaleX(-1); }
+  #controls-container {
+      display: flex; 
+      justify-content: center;
+      gap: 10px; 
+      margin-top: 15px;
+      align-items: center; 
+  }
+  .status-display {
+    padding: 8px 12px;
+    background-color: #34495e; 
+    color: #ecf0f1;
+    font-size: 18px;
+    font-weight: bold; 
+    border-radius: 10px; 
+    min-width: 150px;
+    text-align: center; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  #warning-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+    z-index: 10;
+    border-radius: 5px;
+  }
+  #warning-overlay::before {
+    content: '⚠️';
+    font-size: 40px;
+    margin-bottom: 10px;
+  }
+  #warning-text {
+    color: #ffc107;
+    font-size: 20px;
+    font-weight: bold;
+    padding: 15px;
+    border-radius: 10px;
+    background-color: rgba(255, 0, 0, 0.4);
+    border: 2px solid #ffc107;
+  }
+
+  #square-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .square {
+    width: 60px;
+    height: 60px;
+    border: none;
+    background-color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+  }
+  .square img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: grayscale(100%);
+  }
+  .square.selected-square {
+    background-color: #fff;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+    transform: scale(1.1);
+  }
+  .square.selected-square img {
+    filter: grayscale(0%);
+  }
+
+  #progress-bar-container {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 45%; /* 너비 조정 */
+    max-width: 800px; /* 최대 너비 설정 */
+    height: 20px; /* 높이 조정 */
+    background-color: #333; /* 바의 배경색 */
+    border-radius: 10px;
+    overflow: hidden;
+    z-index: 2000;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  }
+
+  #rainbow-progress-bar {
+    height: 100%;
+    width: 100%; /* 항상 100%로 유지하고, 컨테이너의 overflow: hidden으로 조절 */
+    background: linear-gradient(to right,
+        red 0%, red 16.66%,
+        orange 16.66%, orange 33.32%,
+        yellow 33.32%, yellow 49.98%,
+        green 49.98%, green 66.64%,
+        blue 66.64%, blue 83.3%,
+        violet 83.3%, violet 100%
+    );
+    transform-origin: left; /* 왼쪽을 기준으로 변형 */
+    transition: transform 0.5s ease-out; /* 부드러운 전환 효과 */
+  }
+
+  #emoji-indicator {
+    position: absolute;
+    top: 50%;
+    left: 0%; /* JavaScript에서 동적으로 변경 */
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    z-index: 2001;
+    pointer-events: none; /* 이모티콘이 다른 요소 클릭을 방해하지 않도록 */
+    transition: left 0.1s linear; /* 부드러운 이동 효과 */
+  }
+
+  /* 게임 오버 화면 스타일 (ending.html과 동일한 스타일) */
+  #game-over-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 1s ease-in;
+  }
+
+  #game-over-overlay.show {
+    opacity: 1;
+  }
+
+  .game-over-container {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 50px 40px;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    animation: slideIn 1s ease-out;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .skull {
+    font-size: 60px;
+    margin-bottom: 20px;
+    animation: bounce 2s infinite;
+  }
+
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-15px);
+    }
+    60% {
+      transform: translateY(-8px);
+    }
+  }
+
+  .game-over-title {
+    font-size: 36px;
+    color: #333;
+    margin-bottom: 15px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .game-over-subtitle {
+    font-size: 20px;
+    color: #666;
+    margin-bottom: 25px;
+  }
+
+  .game-over-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 12px 25px;
+    font-size: 16px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    font-weight: bold;
+  }
+
+  .btn-primary {
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 16px rgba(76, 175, 80, 0.4);
+  }
+
+  .btn-home {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    color: white;
+  }
+
+  .btn-home:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 16px rgba(255, 107, 107, 0.4);
+  }

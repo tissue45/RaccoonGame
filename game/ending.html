@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게임 완료! - 동물 러닝 게임</title>
+
+    <!-- 3D Game Library (Three.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #87CEEB;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #result-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 1s ease-in;
+        }
+
+        .ending-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 50px 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            animation: slideIn 1s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .trophy {
+            font-size: 60px;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            20%,
+            50%,
+            80%,
+            100% {
+                transform: translateY(0);
+            }
+
+            40% {
+                transform: translateY(-15px);
+            }
+
+            60% {
+                transform: translateY(-8px);
+            }
+        }
+
+        .title {
+            font-size: 36px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .animals {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+
+        .animal {
+            font-size: 40px;
+            animation: float 3s ease-in-out infinite;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .animal:hover {
+            transform: scale(1.2);
+        }
+
+        .animal:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .animal:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .animal:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        .animal:nth-child(4) {
+            animation-delay: 1.5s;
+        }
+
+        .animal:nth-child(5) {
+            animation-delay: 2s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .stats {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 25px 0;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 16px;
+        }
+
+        .stat-label {
+            color: #666;
+        }
+
+        .stat-value {
+            color: #333;
+            font-weight: bold;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-home {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .btn-home:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(255, 107, 107, 0.4);
+        }
+
+        /* 폭죽 애니메이션 */
+        .firework {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: firework 2s ease-out infinite;
+            z-index: 5;
+            /* 완료 페이지보다 뒤에 */
+            box-shadow: 0 0 15px currentColor, 0 0 30px currentColor;
+            /* 강한 발광 효과 */
+        }
+
+        .firework::before,
+        .firework::after {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            animation: firework-particles 2s ease-out infinite;
+            box-shadow: 0 0 10px currentColor;
+            /* 파티클도 발광 */
+        }
+
+        .firework::before {
+            animation-delay: 0.1s;
+        }
+
+        .firework::after {
+            animation-delay: 0.2s;
+        }
+
+        @keyframes firework {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1) rotate(180deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(0) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes firework-particles {
+            0% {
+                transform: translate(0, 0) scale(0);
+                opacity: 1;
+            }
+
+            50% {
+                transform: translate(var(--x, 0), var(--y, 0)) scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(calc(var(--x, 0) * 2), calc(var(--y, 0) * 2)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* 색상별 폭죽 */
+        .firework-red {
+            background: #ff0040;
+        }
+
+        .firework-blue {
+            background: #0080ff;
+        }
+
+        .firework-green {
+            background: #00ff80;
+        }
+
+        .firework-yellow {
+            background: #ffff00;
+        }
+
+        .firework-purple {
+            background: #ff00ff;
+        }
+
+        .firework-orange {
+            background: #ff8000;
+        }
+
+        .firework-pink {
+            background: #ff69b4;
+        }
+
+        .firework-cyan {
+            background: #00ffff;
+        }
+
+        /* 반짝이는 별 효과 */
+        .sparkle {
+            position: fixed;
+            width: 6px;
+            height: 6px;
+            background: gold;
+            border-radius: 50%;
+            animation: sparkle 1.5s ease-in-out infinite;
+            z-index: 5;
+            /* 완료 페이지보다 뒤에 */
+        }
+
+        @keyframes sparkle {
+
+            0%,
+            100% {
+                transform: scale(0) rotate(0deg);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1) rotate(180deg);
+                opacity: 1;
+            }
+        }
+
+        /* 색종이 효과 */
+        .confetti {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            animation: confetti 3s ease-out infinite;
+            z-index: 5;
+            /* 완료 페이지보다 뒤에 */
+        }
+
+        @keyframes confetti {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .confetti-red {
+            background: #ff4757;
+        }
+
+        .confetti-blue {
+            background: #3742fa;
+        }
+
+        .confetti-green {
+            background: #2ed573;
+        }
+
+        .confetti-yellow {
+            background: #ffa502;
+        }
+
+        .confetti-purple {
+            background: #a55eea;
+        }
+
+        /* 결과 오버레이가 나타날 때 폭죽 효과 시작 */
+        #result-overlay.show-fireworks {
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <audio src="music/ending.wav" autoplay loop></audio>
+    <!-- 3D 게임 컨테이너 -->
+    <div id="game-container"></div>
+
+    <!-- 결과 오버레이 -->
+    <div id="result-overlay">
+        <div class="ending-container">
+            <div class="trophy">🏆</div>
+            <h1 class="title">축하합니다!</h1>
+            <p class="subtitle">동물들이 동물보호구역에 도달했습니다!</p>
+
+            <div class="animals">
+                <div class="animal" title="너구리">🦝</div>
+                <div class="animal" title="호랑이">🐯</div>
+                <div class="animal" title="토끼">🐇</div>
+                <div class="animal" title="뱀">🐍</div>
+                <div class="animal" title="코끼리">🐘</div>
+            </div>
+
+
+
+            <div class="buttons">
+                <a href="index.html" class="btn btn-primary">🔄 다시 플레이</a>
+                <a href="start.html" class="btn btn-home">🏠 타이틀로 돌아가기</a>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // 3D 씬 설정
+        let scene, camera, renderer;
+        let endingAnimals = [];
+        let endingTrees = [];
+        let endingGround = null;
+        let animationStartTime = 0;
+
+
+        // 카메라 무빙 시스템
+        let cameraSequence = [
+            // 1. 전체 씬 와이드 샷 (0-4초) - 더 가까이
+            { duration: 4000, position: { x: 0, y: 12, z: 18 }, lookAt: { x: 0, y: 2, z: -30 } },
+            // 2. 너구리 클로즈업 (4-6.5초) - 더 천천히
+            { duration: 2500, position: { x: -16, y: 4, z: -20 }, lookAt: { x: -16, y: 2, z: -30 } },
+            // 3. 호랑이 클로즈업 (6.5-9초) - 더 천천히
+            { duration: 2500, position: { x: -8, y: 4, z: -20 }, lookAt: { x: -8, y: 2, z: -30 } },
+            // 4. 토끼 클로즈업 (9-11.5초) - 더 천천히
+            { duration: 2500, position: { x: 0, y: 4, z: -20 }, lookAt: { x: 0, y: 2, z: -30 } },
+            // 5. 뱀 클로즈업 (11.5-14초) - 뱀이 더 뒤에 있으므로 카메라도 조금 더 뒤로
+            { duration: 2500, position: { x: 8, y: 4, z: -18 }, lookAt: { x: 8, y: 2, z: -32 } },
+            // 6. 코끼리 클로즈업 (14-16.5초) - 더 천천히
+            { duration: 2500, position: { x: 16, y: 4, z: -20 }, lookAt: { x: 16, y: 2, z: -30 } },
+            // 7. 최종 전체 샷 (16.5초 이후)
+            { duration: Infinity, position: { x: 0, y: 8, z: 15 }, lookAt: { x: 0, y: 3, z: -30 } }
+        ];
+        let currentSequenceIndex = 0;
+        let sequenceStartTime = 0;
+
+        // 노을 하늘 생성 함수
+        function createSunsetSky() {
+            // 하늘 구체 생성
+            const skyGeometry = new THREE.SphereGeometry(500, 32, 32);
+
+            // 하늘색과 노을이 섞인 그라데이션 셰이더 머티리얼
+            const skyMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    topColor: { value: new THREE.Color('#87CEEB') }, // 상단 하늘색
+                    bottomColor: { value: new THREE.Color('#FFD4A3') }, // 하단 부드러운 노을색
+                    offset: { value: 33 },
+                    exponent: { value: 0.8 }
+                },
+                vertexShader: `
+                    varying vec3 vWorldPosition;
+                    void main() {
+                        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                        vWorldPosition = worldPosition.xyz;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 topColor;
+                    uniform vec3 bottomColor;
+                    uniform float offset;
+                    uniform float exponent;
+                    varying vec3 vWorldPosition;
+                    void main() {
+                        float h = normalize(vWorldPosition + offset).y;
+                        gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h, 0.0), exponent), 0.0)), 1.0);
+                    }
+                `,
+                side: THREE.BackSide
+            });
+
+            const sky = new THREE.Mesh(skyGeometry, skyMaterial);
+            scene.add(sky);
+        }
+
+        // 초기화
+        function init() {
+            // Scene 생성
+            scene = new THREE.Scene();
+
+            // 노을 그라데이션 하늘 생성
+            createSunsetSky();
+
+            // 안개 효과 추가 (하늘색과 노을이 섞인 색으로)
+            scene.fog = new THREE.Fog('#B8D4E3', 50, 200); // 하늘색과 노을이 섞인 안개
+
+            // Camera 생성
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            // 초기 카메라 위치는 첫 번째 시퀀스로 설정 (더 가까이)
+            camera.position.set(0, 12, 18);
+            camera.lookAt(0, 2, -30);
+
+            // Renderer 생성
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('game-container').appendChild(renderer.domElement);
+
+            // 조명 설정
+            setupLighting();
+
+            // 엔딩 씬 설정
+            setupEndingScene();
+
+            // 애니메이션 시작
+            animationStartTime = performance.now();
+            animate();
+        }
+
+        function setupLighting() {
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+        }
+
+        // 자연스러운 잔디 텍스처 생성 함수
+        function createGrassTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+
+            // 기본 잔디 색상 (어둡고 초록색)
+            context.fillStyle = '#2E7D32';
+            context.fillRect(0, 0, 128, 128);
+
+            // 잔디 패턴 생성 - 어두운 초록색 팔레트
+            const grassColors = [
+                '#388E3C', // 밝은 어두운 초록
+                '#1B5E20', // 매우 어두운 초록
+                '#2E7D32', // 기본 어두운 초록
+                '#43A047', // 중간 초록
+                '#4CAF50'  // 연한 초록
+            ];
+
+            // 잔디 텍스처 패턴 생성
+            for (let i = 0; i < 150; i++) {
+                const x = Math.random() * 128;
+                const y = Math.random() * 128;
+                const size = Math.random() * 2 + 1;
+                const color = grassColors[Math.floor(Math.random() * grassColors.length)];
+                context.fillStyle = color;
+                context.globalAlpha = 0.3;
+                context.fillRect(x, y, size, size);
+            }
+
+            // 잔디 줄기 효과
+            context.globalAlpha = 0.2;
+            for (let i = 0; i < 25; i++) {
+                const x = Math.random() * 128;
+                const y = Math.random() * 128;
+                const height = Math.random() * 6 + 1;
+                context.fillStyle = '#4CAF50';
+                context.fillRect(x, y, 1, height); // width=1, height=height
+            }
+
+            context.globalAlpha = 1.0;
+            const grassTexture = new THREE.CanvasTexture(canvas);
+            grassTexture.wrapS = THREE.RepeatWrapping;
+            grassTexture.wrapT = THREE.RepeatWrapping;
+            grassTexture.repeat.set(6, 12);
+
+            return grassTexture;
+        }
+
+        // 모래 텍스처 생성 함수
+        function createSandTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+
+            // 기본 모래색 배경
+            context.fillStyle = '#F4A460';
+            context.fillRect(0, 0, 128, 128);
+
+            // 모래 입자 효과를 위한 노이즈 패턴 추가
+            const imageData = context.getImageData(0, 0, 128, 128);
+            const data = imageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const variation = (Math.random() - 0.5) * 30;
+                data[i] = Math.max(0, Math.min(255, data[i] + variation));
+                data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + variation));
+                data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + variation));
+            }
+
+            context.putImageData(imageData, 0, 0);
+
+            const sandTexture = new THREE.CanvasTexture(canvas);
+            sandTexture.wrapS = THREE.RepeatWrapping;
+            sandTexture.wrapT = THREE.RepeatWrapping;
+            sandTexture.repeat.set(4, 4);
+
+            return sandTexture;
+        }
+
+        function setupEndingScene() {
+            // 텍스처 생성
+            const grassTexture = createGrassTexture();
+            const sandTexture = createSandTexture();
+
+            // 중앙 메인 바닥 제거 (잔디만 남김)
+
+            // 거대한 잔디 바닥 (경계선이 안보이도록)
+            const hugeGroundGeometry = new THREE.PlaneGeometry(800, 600);
+            const hugeGroundMaterial = new THREE.MeshStandardMaterial({
+                map: grassTexture,
+                color: '#2E7D32'
+            });
+            const hugeGround = new THREE.Mesh(hugeGroundGeometry, hugeGroundMaterial);
+            hugeGround.rotation.x = -Math.PI / 2;
+            hugeGround.position.set(0, -0.5, -30);
+            hugeGround.receiveShadow = true;
+            scene.add(hugeGround);
+
+            // 나무들 생성 (동물들 뒤쪽에 반원으로)
+            createEndingTrees();
+
+            // 동물들 생성
+            createEndingAnimals();
+
+
+        }
+
+        // 폭죽 생성 함수
+        function createFireworks() {
+            // 폭죽은 애니메이션 중에 동적으로 생성됩니다
+        }
+
+        // 개별 폭죽 생성 함수
+        function createSingleFirework(x, y, z) {
+            const fireworkGroup = new THREE.Group();
+            const particles = [];
+
+            // 폭죽 색상 (랜덤)
+            const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff, 0xffa500, 0xff69b4];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+
+            // 파티클 개수
+            const particleCount = 50 + Math.random() * 30;
+
+            for (let i = 0; i < particleCount; i++) {
+                // 파티클 생성 (더 크고 밝게)
+                const particleGeometry = new THREE.SphereGeometry(0.3 + Math.random() * 0.2);
+                const particleMaterial = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 1,
+                    emissive: color, // 자체 발광 효과
+                    emissiveIntensity: 0.5
+                });
+                const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+
+                // 초기 위치
+                particle.position.set(0, 0, 0);
+
+                // 랜덤 방향과 속도
+                const direction = new THREE.Vector3(
+                    (Math.random() - 0.5) * 2,
+                    Math.random() * 0.5 + 0.2, // 위쪽으로 더 많이
+                    (Math.random() - 0.5) * 2
+                ).normalize();
+
+                const speed = 5 + Math.random() * 10;
+                particle.userData.velocity = direction.multiplyScalar(speed);
+                particle.userData.gravity = -15; // 중력
+                particle.userData.life = 1.0; // 생명력
+                particle.userData.decay = 0.02 + Math.random() * 0.02; // 소멸 속도
+
+                fireworkGroup.add(particle);
+                particles.push(particle);
+            }
+
+            fireworkGroup.position.set(x, y, z);
+            fireworkGroup.userData.particles = particles;
+            fireworkGroup.userData.life = 3.0; // 폭죽 전체 생명력
+
+            scene.add(fireworkGroup);
+            fireworks.push(fireworkGroup);
+
+            return fireworkGroup;
+        }
+
+        // 폭죽 업데이트 함수
+        function updateFireworks(deltaTime) {
+            for (let i = fireworks.length - 1; i >= 0; i--) {
+                const firework = fireworks[i];
+                const particles = firework.userData.particles;
+
+                // 폭죽 생명력 감소
+                firework.userData.life -= deltaTime;
+
+                // 각 파티클 업데이트
+                for (let j = particles.length - 1; j >= 0; j--) {
+                    const particle = particles[j];
+
+                    // 위치 업데이트 (물리 시뮬레이션)
+                    particle.position.add(particle.userData.velocity.clone().multiplyScalar(deltaTime));
+
+                    // 중력 적용
+                    particle.userData.velocity.y += particle.userData.gravity * deltaTime;
+
+                    // 생명력 감소
+                    particle.userData.life -= particle.userData.decay;
+
+                    // 투명도 업데이트
+                    particle.material.opacity = Math.max(0, particle.userData.life);
+
+                    // 파티클 제거
+                    if (particle.userData.life <= 0) {
+                        firework.remove(particle);
+                        particles.splice(j, 1);
+                    }
+                }
+
+                // 폭죽 전체 제거
+                if (firework.userData.life <= 0 || particles.length === 0) {
+                    scene.remove(firework);
+                    fireworks.splice(i, 1);
+                }
+            }
+        }
+
+        function createEndingTrees() {
+            const loader = new THREE.GLTFLoader();
+
+            // 기존 tree 모델 로드
+            loader.load('background/stylized_tree/scene.gltf', (gltf) => {
+                const treeModel = gltf.scene;
+
+                // 나무 크기 설정
+                const box = new THREE.Box3().setFromObject(treeModel);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = (6 / size.y) * 2.0; // 적당한 크기로
+                treeModel.scale.set(scale, scale, scale);
+                treeModel.position.y = 0;
+
+                // 반원으로 나무들 배치 (동물들 뒤쪽에) + 사이드에 추가 나무들
+                const numTrees = 60; // 나무 개수 대폭 증가 (울창한 숲)
+                const radius = 90; // 반원의 반지름 더 확대
+
+                for (let i = 0; i < numTrees; i++) {
+                    const tree = treeModel.clone();
+
+                    // 각 나무마다 다른 크기 (0.8배 ~ 2.5배)
+                    const randomScale = 0.8 + Math.random() * 1.7;
+                    tree.scale.multiplyScalar(randomScale);
+
+                    // 반원 각도 계산 (180도 범위)
+                    const angle = (Math.PI / (numTrees - 1)) * i; // 0 ~ π
+
+                    // 반원 위치 계산 (동물들 뒤쪽에 배치)
+                    const x = Math.cos(angle) * radius;
+                    const z = -30 - Math.sin(angle) * radius * 0.8; // 동물들 뒤쪽에 반원으로
+
+                    tree.position.set(x, 0, z);
+
+                    // 나무가 중앙을 바라보도록 회전
+                    tree.lookAt(0, 0, -30);
+
+                    // 각 나무마다 다른 점프 애니메이션 설정
+                    tree.userData.jumpOffset = Math.random() * Math.PI * 2; // 랜덤 시작점
+                    tree.userData.jumpSpeed = 1.2 + Math.random() * 0.8; // 1.2 ~ 2.0 속도 (더 빠르게)
+                    tree.userData.jumpHeight = 3 + Math.random() * 4; // 3 ~ 7 높이 (더 높게)
+                    tree.userData.originalY = 0;
+                    tree.userData.originalScale = tree.scale.clone(); // 원래 스케일 저장 (랜덤 크기 적용 후)
+
+                    scene.add(tree);
+                    endingTrees.push(tree);
+                }
+
+                // 사이드에 추가 나무들 배치 (더 울창하게)
+                for (let i = 0; i < 80; i++) {
+                    const sideTree = treeModel.clone();
+
+                    // 사이드 나무는 더 크게
+                    sideTree.scale.multiplyScalar(2.5);
+
+                    // 왼쪽 또는 오른쪽 사이드에 랜덤 배치 (훨씬 더 넓은 범위)
+                    const side = Math.random() < 0.5 ? -1 : 1;
+                    const x = side * (40 + Math.random() * 150); // 훨씬 더 넓은 사이드 영역
+                    const z = -30 + (Math.random() - 0.5) * 250; // 훨씬 더 넓은 범위에 배치
+
+                    sideTree.position.set(x, 0, z);
+                    sideTree.rotation.y = Math.random() * Math.PI * 2;
+
+                    // 사이드 나무 애니메이션 설정 (더 다양하게)
+                    sideTree.userData.jumpOffset = Math.random() * Math.PI * 2;
+                    sideTree.userData.jumpSpeed = 0.8 + Math.random() * 0.6;
+                    sideTree.userData.jumpHeight = 1 + Math.random() * 2;
+                    sideTree.userData.originalY = 0;
+
+                    scene.add(sideTree);
+                    endingTrees.push(sideTree);
+                }
+
+                // 배경 깊숙한 곳에 추가 나무들 (숲의 깊이감)
+                for (let i = 0; i < 60; i++) {
+                    const deepTree = treeModel.clone();
+                    deepTree.scale.multiplyScalar(1.8 + Math.random() * 1.2); // 다양한 크기
+
+                    // 배경 깊숙한 곳에 배치 (더 넓고 깊게)
+                    const x = (Math.random() - 0.5) * 350;
+                    const z = -80 - Math.random() * 80; // 동물들보다 훨씬 뒤쪽
+
+                    deepTree.position.set(x, 0, z);
+                    deepTree.rotation.y = Math.random() * Math.PI * 2;
+
+                    scene.add(deepTree);
+                    endingTrees.push(deepTree);
+                }
+
+                // 앞쪽에도 나무들 추가 (동물들 앞쪽, 카메라와 동물 사이)
+                for (let i = 0; i < 40; i++) {
+                    const frontTree = treeModel.clone();
+                    frontTree.scale.multiplyScalar(1.5 + Math.random() * 1.0); // 앞쪽 나무는 조금 더 크게
+
+                    // 앞쪽 좌우에 배치 (중앙은 피해서)
+                    const side = Math.random() < 0.5 ? -1 : 1;
+                    const x = side * (25 + Math.random() * 100);
+                    const z = -10 + Math.random() * 15; // 동물들 앞쪽
+
+                    frontTree.position.set(x, 0, z);
+                    frontTree.rotation.y = Math.random() * Math.PI * 2;
+
+                    scene.add(frontTree);
+                    endingTrees.push(frontTree);
+                }
+
+                console.log(`${numTrees}개의 배경 나무 + 80개의 사이드 나무 + 60개의 깊은 숲 나무 + 40개의 앞쪽 나무가 배치되었습니다!`);
+            }, undefined, (error) => {
+                console.error('나무 모델 로딩 실패:', error);
+                // 폴백: 간단한 나무 생성
+                createSimpleTrees();
+            });
+        }
+
+        // 폴백용 간단한 나무 생성
+        function createSimpleTrees() {
+            const numTrees = 60;
+            const radius = 90;
+
+            for (let i = 0; i < numTrees; i++) {
+                const treeGroup = new THREE.Group();
+
+                // 각 나무마다 다른 크기 (0.8배 ~ 2.5배)
+                const randomScale = 0.8 + Math.random() * 1.7;
+
+                // 나무 줄기 (크기 랜덤 적용)
+                const trunkRadius = (0.5 + Math.random() * 0.3) * randomScale;
+                const trunkHeight = (4 + Math.random() * 2) * randomScale;
+                const trunkGeometry = new THREE.CylinderGeometry(trunkRadius, trunkRadius * 1.2, trunkHeight);
+                const trunkMaterial = new THREE.MeshStandardMaterial({ color: '#8B4513' });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.y = trunkHeight / 2;
+                trunk.castShadow = true;
+                treeGroup.add(trunk);
+
+                // 나무 잎 (크기 랜덤 적용)
+                const leavesRadius = (3 + Math.random() * 2) * randomScale;
+                const leavesGeometry = new THREE.SphereGeometry(leavesRadius);
+                const leavesMaterial = new THREE.MeshStandardMaterial({ color: '#228B22' });
+                const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                leaves.position.y = trunkHeight + leavesRadius * 0.7;
+                leaves.castShadow = true;
+                treeGroup.add(leaves);
+
+                // 반원 배치 (동물들 뒤쪽에)
+                const angle = (Math.PI / (numTrees - 1)) * i;
+                const x = Math.cos(angle) * radius;
+                const z = -30 - Math.sin(angle) * radius * 0.8;
+
+                treeGroup.position.set(x, 0, z);
+                treeGroup.lookAt(0, 0, -30);
+
+                // 점프 애니메이션 설정
+                treeGroup.userData.jumpOffset = Math.random() * Math.PI * 2;
+                treeGroup.userData.jumpSpeed = 1.2 + Math.random() * 0.8;
+                treeGroup.userData.jumpHeight = 3 + Math.random() * 4;
+                treeGroup.userData.originalY = 0;
+
+                scene.add(treeGroup);
+                endingTrees.push(treeGroup);
+            }
+
+            // 사이드에 추가 간단한 나무들 생성 (더 울창하게)
+            for (let i = 0; i < 80; i++) {
+                const sideTreeGroup = new THREE.Group();
+
+                // 나무 줄기 (더 크게)
+                const trunkGeometry = new THREE.CylinderGeometry(1, 1.5, 8);
+                const trunkMaterial = new THREE.MeshStandardMaterial({ color: '#8B4513' });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.y = 4;
+                trunk.castShadow = true;
+                sideTreeGroup.add(trunk);
+
+                // 나무 잎 (더 크게)
+                const leavesGeometry = new THREE.SphereGeometry(6);
+                const leavesMaterial = new THREE.MeshStandardMaterial({ color: '#228B22' });
+                const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                leaves.position.y = 10;
+                leaves.castShadow = true;
+                sideTreeGroup.add(leaves);
+
+                // 사이드 배치 (훨씬 더 넓은 범위)
+                const side = Math.random() < 0.5 ? -1 : 1;
+                const x = side * (40 + Math.random() * 150);
+                const z = -30 + (Math.random() - 0.5) * 250;
+
+                sideTreeGroup.position.set(x, 0, z);
+                sideTreeGroup.rotation.y = Math.random() * Math.PI * 2;
+
+                // 점프 애니메이션 설정
+                sideTreeGroup.userData.jumpOffset = Math.random() * Math.PI * 2;
+                sideTreeGroup.userData.jumpSpeed = 0.8 + Math.random() * 0.6;
+                sideTreeGroup.userData.jumpHeight = 1 + Math.random() * 2;
+                sideTreeGroup.userData.originalY = 0;
+
+                scene.add(sideTreeGroup);
+                endingTrees.push(sideTreeGroup);
+            }
+
+            // 배경 깊숙한 곳에 추가 간단한 나무들 (숲의 깊이감)
+            for (let i = 0; i < 60; i++) {
+                const deepTreeGroup = new THREE.Group();
+
+                // 나무 줄기 (더 크고 다양한 크기)
+                const trunkSize = 1 + Math.random() * 1;
+                const trunkHeight = 6 + Math.random() * 4;
+                const trunkGeometry = new THREE.CylinderGeometry(trunkSize, trunkSize * 1.2, trunkHeight);
+                const trunkMaterial = new THREE.MeshStandardMaterial({ color: '#8B4513' });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.y = trunkHeight / 2;
+                trunk.castShadow = true;
+                deepTreeGroup.add(trunk);
+
+                // 나무 잎 (더 크고 다양한 크기)
+                const leavesSize = 4 + Math.random() * 4;
+                const leavesGeometry = new THREE.SphereGeometry(leavesSize);
+                const leavesMaterial = new THREE.MeshStandardMaterial({ color: '#228B22' });
+                const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                leaves.position.y = trunkHeight + leavesSize * 0.7;
+                leaves.castShadow = true;
+                deepTreeGroup.add(leaves);
+
+                // 배경 깊숙한 곳에 배치 (더 넓고 깊게)
+                const x = (Math.random() - 0.5) * 350;
+                const z = -80 - Math.random() * 80;
+
+                deepTreeGroup.position.set(x, 0, z);
+                deepTreeGroup.rotation.y = Math.random() * Math.PI * 2;
+
+                scene.add(deepTreeGroup);
+                endingTrees.push(deepTreeGroup);
+            }
+
+            // 앞쪽에도 간단한 나무들 추가
+            for (let i = 0; i < 40; i++) {
+                const frontTreeGroup = new THREE.Group();
+
+                // 앞쪽 나무는 조금 더 크게
+                const frontScale = 1.5 + Math.random() * 1.0;
+
+                // 나무 줄기
+                const trunkSize = (1 + Math.random() * 0.5) * frontScale;
+                const trunkHeight = (6 + Math.random() * 3) * frontScale;
+                const trunkGeometry = new THREE.CylinderGeometry(trunkSize, trunkSize * 1.2, trunkHeight);
+                const trunkMaterial = new THREE.MeshStandardMaterial({ color: '#8B4513' });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.y = trunkHeight / 2;
+                trunk.castShadow = true;
+                frontTreeGroup.add(trunk);
+
+                // 나무 잎
+                const leavesSize = (4 + Math.random() * 3) * frontScale;
+                const leavesGeometry = new THREE.SphereGeometry(leavesSize);
+                const leavesMaterial = new THREE.MeshStandardMaterial({ color: '#228B22' });
+                const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                leaves.position.y = trunkHeight + leavesSize * 0.7;
+                leaves.castShadow = true;
+                frontTreeGroup.add(leaves);
+
+                // 앞쪽 좌우에 배치
+                const side = Math.random() < 0.5 ? -1 : 1;
+                const x = side * (25 + Math.random() * 100);
+                const z = -10 + Math.random() * 15;
+
+                frontTreeGroup.position.set(x, 0, z);
+                frontTreeGroup.rotation.y = Math.random() * Math.PI * 2;
+
+                scene.add(frontTreeGroup);
+                endingTrees.push(frontTreeGroup);
+            }
+        }
+
+        function createEndingAnimals() {
+            const animalPaths = [
+                'animal/raccoon_Walking.glb',
+                'animal/tiger_Walking.glb',
+                'animal/rabbit_Walkng.glb',
+                'animal/snake.glb',
+                'animal/elephant_Walking.glb'
+            ];
+
+            const animalTypes = ['raccoon', 'tiger', 'rabbit', 'snake', 'elephant'];
+            const loader = new THREE.GLTFLoader();
+
+            animalPaths.forEach((path, index) => {
+                loader.load(path, (gltf) => {
+                    const animal = gltf.scene;
+                    const animalType = animalTypes[index];
+
+                    // 동물 크기 설정
+                    const box = new THREE.Box3().setFromObject(animal);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+
+                    animal.position.sub(center);
+
+                    let scale;
+                    if (animalType === 'tiger') {
+                        scale = (2.5 / size.y) / 50;
+                    } else if (animalType === 'elephant') {
+                        scale = (2.5 / size.y) * 3;
+                    } else if (animalType === 'rabbit') {
+                        scale = (2.5 / size.y) / 65;
+                    } else if (animalType === 'snake') {
+                        scale = (2.5 / size.y) / 6;
+                    } else if (animalType === 'raccoon') {
+                        scale = (2.5 / size.y) / 60;
+                    }
+                    animal.scale.set(scale, scale, scale);
+
+                    // 동물들을 일렬로 배치 (뱀만 조금 더 뒤로)
+                    let zPosition = -30;
+                    if (animalType === 'snake') {
+                        zPosition = -32; // 뱀만 2유닛 더 뒤로
+                    }
+
+                    animal.position.set(
+                        (index - 2) * 8, // 중앙을 기준으로 좌우 배치
+                        1.5,
+                        zPosition
+                    );
+
+                    animal.rotation.y = 0; // 정면을 바라보도록
+
+                    // 각 동물마다 다른 점프 애니메이션 설정
+                    animal.userData.jumpOffset = Math.random() * Math.PI * 2; // 랜덤 시작점
+                    animal.userData.jumpSpeed = 1.5 + Math.random() * 1.0; // 1.5 ~ 2.5 속도 (더 빠르게)
+                    animal.userData.jumpHeight = 2 + Math.random() * 3; // 2 ~ 5 높이
+                    animal.userData.originalY = 1.5;
+                    animal.userData.originalScale = animal.scale.clone(); // 원래 스케일 저장
+
+                    animal.traverse(node => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                        }
+                    });
+
+                    // 애니메이션 설정
+                    if (gltf.animations && gltf.animations.length) {
+                        const mixer = new THREE.AnimationMixer(animal);
+                        let animationClip = null;
+
+                        // 코끼리는 특별한 애니메이션 사용
+                        if (animalType === 'elephant') {
+                            const possibleNames = ['TRS|end idle', 'TRS | end idle', 'end idle', 'idle', 'Idle'];
+                            for (const name of possibleNames) {
+                                animationClip = THREE.AnimationClip.findByName(gltf.animations, name);
+                                if (animationClip) break;
+                            }
+                        } else {
+                            // 다른 동물들은 기존 애니메이션 사용
+                            const possibleNames = ['run', 'Run', 'walk', 'Walk', 'Walking'];
+                            for (const name of possibleNames) {
+                                animationClip = THREE.AnimationClip.findByName(gltf.animations, name);
+                                if (animationClip) break;
+                            }
+                        }
+
+                        if (animationClip) {
+                            const action = mixer.clipAction(animationClip);
+                            action.setLoop(THREE.LoopRepeat); // 무한 반복
+                            action.play();
+                            animal.userData.mixer = mixer;
+                            console.log(`${animalType} 애니메이션 반복 재생: ${animationClip.name}`);
+                        } else {
+                            console.log(`${animalType} 애니메이션을 찾을 수 없습니다.`);
+                            console.log(`사용 가능한 애니메이션 목록 (${gltf.animations.length}개):`);
+                            gltf.animations.forEach((clip, index) => {
+                                console.log(`${index}: "${clip.name}"`);
+                            });
+                        }
+                    }
+
+                    scene.add(animal);
+                    endingAnimals.push(animal);
+                }, undefined, (error) => {
+                    console.error(`동물 모델 로딩 실패: ${path}`, error);
+                });
+            });
+        }
+
+        // 카메라 무빙 업데이트 함수
+        function updateCameraMovement(elapsed) {
+            let totalTime = 0;
+            let targetSequence = null;
+
+            // 현재 시간에 해당하는 시퀀스 찾기
+            for (let i = 0; i < cameraSequence.length; i++) {
+                if (elapsed >= totalTime && elapsed < totalTime + cameraSequence[i].duration) {
+                    targetSequence = cameraSequence[i];
+                    sequenceStartTime = totalTime;
+                    currentSequenceIndex = i;
+                    break;
+                }
+                totalTime += cameraSequence[i].duration;
+            }
+
+            // 마지막 시퀀스인 경우
+            if (!targetSequence) {
+                targetSequence = cameraSequence[cameraSequence.length - 1];
+                sequenceStartTime = totalTime - cameraSequence[cameraSequence.length - 1].duration;
+            }
+
+            // 현재 시퀀스 내에서의 진행률 계산
+            const sequenceElapsed = elapsed - sequenceStartTime;
+            const progress = Math.min(sequenceElapsed / targetSequence.duration, 1);
+
+            // 부드러운 이징 함수 (easeInOutCubic)
+            const easeProgress = progress < 0.5
+                ? 4 * progress * progress * progress
+                : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+            // 이전 시퀀스와 현재 시퀀스 사이의 보간
+            let fromPos, fromLookAt;
+            if (currentSequenceIndex > 0) {
+                const prevSequence = cameraSequence[currentSequenceIndex - 1];
+                fromPos = prevSequence.position;
+                fromLookAt = prevSequence.lookAt;
+            } else {
+                fromPos = targetSequence.position;
+                fromLookAt = targetSequence.lookAt;
+            }
+
+            // 카메라 위치 보간
+            camera.position.x = fromPos.x + (targetSequence.position.x - fromPos.x) * easeProgress;
+            camera.position.y = fromPos.y + (targetSequence.position.y - fromPos.y) * easeProgress;
+            camera.position.z = fromPos.z + (targetSequence.position.z - fromPos.z) * easeProgress;
+
+            // 카메라 시선 보간
+            const lookAtX = fromLookAt.x + (targetSequence.lookAt.x - fromLookAt.x) * easeProgress;
+            const lookAtY = fromLookAt.y + (targetSequence.lookAt.y - fromLookAt.y) * easeProgress;
+            const lookAtZ = fromLookAt.z + (targetSequence.lookAt.z - fromLookAt.z) * easeProgress;
+
+            camera.lookAt(lookAtX, lookAtY, lookAtZ);
+
+            // 약간의 카메라 흔들림 효과 (클로즈업 시에만)
+            if (currentSequenceIndex >= 1 && currentSequenceIndex <= 5) {
+                const shake = Math.sin(elapsed * 0.01) * 0.1;
+                camera.position.y += shake;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const currentTime = performance.now();
+            const elapsed = currentTime - animationStartTime;
+            const time = elapsed * 0.001; // 초 단위로 변환
+
+            // 카메라 무빙 업데이트
+            updateCameraMovement(elapsed);
+
+
+
+            // 동물 애니메이션 업데이트
+            endingAnimals.forEach(animal => {
+                if (animal.userData.mixer) {
+                    animal.userData.mixer.update(0.016); // 60fps 기준
+                }
+
+                // 동물들이 천천히 앞으로 걸어오는 애니메이션 (처음 3초만)
+                if (elapsed < 3000) {
+                    animal.position.z += 0.02;
+                }
+
+                // 동물들 점프 애니메이션 (통통 튀는 느낌!) - 2초 후부터
+                if (elapsed > 2000) {
+                    const jumpTime = (elapsed - 2000) * 0.001;
+                    const animalType = animal.userData.animalType;
+
+                    let jumpY = 0;
+                    let scaleEffect = 1;
+                    let rotationEffect = 0;
+
+                    switch (animalType) {
+                        case 'tiger':
+                            // 우아하게 몸을 흔들며 점프
+                            const tigerBouncePhase = (jumpTime * 2.0 + animal.userData.jumpOffset) % (Math.PI * 2);
+                            jumpY = Math.sin(tigerBouncePhase) * 2.5;
+                            animal.rotation.y = Math.sin(jumpTime * 2.5) * 0.3; // 좌우로 살랑살랑
+                            break;
+                        case 'rabbit':
+                            // 빠르고 짧게 깡총깡총
+                            const rabbitBouncePhase = (jumpTime * 7.0 + animal.userData.jumpOffset) % (Math.PI * 2);
+                            if (rabbitBouncePhase < Math.PI) {
+                                jumpY = Math.sin(rabbitBouncePhase) * 3;
+                            }
+                            scaleEffect = 1 + (jumpY / 3) * 0.2;
+                            break;
+                        case 'elephant':
+                            // 쿵쾅거리며 육중하게 점프
+                            const elephantBouncePhase = (jumpTime * 1.2 + animal.userData.jumpOffset) % (Math.PI * 2);
+                            if (elephantBouncePhase < Math.PI) {
+                                jumpY = Math.sin(elephantBouncePhase) * 1.5;
+                            }
+                            if (jumpY < 0.1) { // 땅에 닿을 때
+                                camera.position.y -= 0.05; // 화면 흔들림 효과
+                                setTimeout(() => { camera.position.y += 0.05; }, 100);
+                            }
+                            break;
+                        case 'snake':
+                            // 꿈틀거리며 웨이브
+                            animal.position.y = animal.userData.originalY + Math.sin(jumpTime * 4 + animal.userData.jumpOffset) * 0.5;
+                            animal.rotation.z = Math.sin(jumpTime * 3) * 0.2;
+                            break;
+                        default: // 너구리 및 기타
+                            const defaultBouncePhase = (jumpTime * 2.5 + animal.userData.jumpOffset) % (Math.PI * 2);
+                            if (defaultBouncePhase < Math.PI) {
+                                jumpY = Math.sin(defaultBouncePhase) * animal.userData.jumpHeight;
+                            }
+                            scaleEffect = 1 + (jumpY / animal.userData.jumpHeight) * 0.1;
+                            rotationEffect = (jumpY / animal.userData.jumpHeight) * 0.1;
+                            break;
+                    }
+
+                    if (animalType !== 'snake') {
+                        animal.position.y = animal.userData.originalY + jumpY;
+                        animal.scale.copy(animal.userData.originalScale).multiplyScalar(scaleEffect);
+                        animal.rotation.z = Math.sin(jumpTime * animal.userData.jumpSpeed * 2 + animal.userData.jumpOffset) * rotationEffect;
+                    }
+                }
+            });
+
+            // 나무들은 고정된 배경으로 유지 (애니메이션 제거)
+
+            // 18초 후 결과 화면 표시 (카메라 시퀀스 완료 후)
+            if (elapsed > 18000) {
+                const overlay = document.getElementById('result-overlay');
+                overlay.style.opacity = '1';
+                overlay.classList.add('show-fireworks');
+
+                // 폭죽 효과 시작
+                if (!overlay.hasAttribute('data-fireworks-started')) {
+                    overlay.setAttribute('data-fireworks-started', 'true');
+                    startFireworksShow();
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // 윈도우 리사이즈 처리
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // 동물 클릭 효과
+        document.querySelectorAll('.animal').forEach(animal => {
+            animal.addEventListener('click', () => {
+                animal.style.transform = 'scale(1.5) rotate(360deg)';
+                setTimeout(() => {
+                    animal.style.transform = '';
+                }, 500);
+            });
+        });
+
+        // 버튼 클릭 효과음
+        const clickSound = new Audio('music/menu-click-two-tone.mp3');
+        document.querySelectorAll('.btn').forEach(button => {
+            button.addEventListener('click', () => {
+                clickSound.play();
+            });
+        });
+
+        // 키보드 단축키
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                window.location.href = 'index.html';
+            }
+        });
+
+        // 폭죽 쇼 시작 함수
+        function startFireworksShow() {
+            const overlay = document.getElementById('result-overlay');
+
+            // 폭죽 생성 함수 (사이드에만)
+            function createFirework() {
+                const firework = document.createElement('div');
+                firework.className = 'firework';
+
+                // 랜덤 색상
+                const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                firework.classList.add(`firework-${color}`);
+
+                // 중앙 완료 페이지만 피해서 배치 (더 넓은 범위)
+                let leftPos;
+                if (Math.random() < 0.4) {
+                    leftPos = Math.random() * 35 + '%'; // 왼쪽 35%
+                } else if (Math.random() < 0.8) {
+                    leftPos = (65 + Math.random() * 35) + '%'; // 오른쪽 35%
+                } else {
+                    leftPos = Math.random() * 100 + '%'; // 가끔 전체 화면
+                }
+                firework.style.left = leftPos;
+                firework.style.top = Math.random() * 100 + '%';
+
+                // 파티클 방향 설정
+                firework.style.setProperty('--x', (Math.random() - 0.5) * 200 + 'px');
+                firework.style.setProperty('--y', (Math.random() - 0.5) * 200 + 'px');
+
+                document.body.appendChild(firework);
+
+                // 2초 후 제거
+                setTimeout(() => {
+                    if (firework.parentNode) {
+                        firework.parentNode.removeChild(firework);
+                    }
+                }, 2000);
+            }
+
+            // 반짝이는 별 생성 함수 (사이드에만)
+            function createSparkle() {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'sparkle';
+
+                // 중앙 완료 페이지만 피해서 배치
+                let leftPos;
+                if (Math.random() < 0.4) {
+                    leftPos = Math.random() * 40 + '%'; // 왼쪽 40%
+                } else if (Math.random() < 0.8) {
+                    leftPos = (60 + Math.random() * 40) + '%'; // 오른쪽 40%
+                } else {
+                    leftPos = Math.random() * 100 + '%'; // 가끔 전체 화면
+                }
+                sparkle.style.left = leftPos;
+                sparkle.style.top = Math.random() * 100 + '%';
+                sparkle.style.animationDelay = Math.random() * 1 + 's';
+
+                document.body.appendChild(sparkle);
+
+                setTimeout(() => {
+                    if (sparkle.parentNode) {
+                        sparkle.parentNode.removeChild(sparkle);
+                    }
+                }, 1500);
+            }
+
+            // 색종이 생성 함수 (전체 화면)
+            function createConfetti() {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+
+                const colors = ['red', 'blue', 'green', 'yellow', 'purple'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                confetti.classList.add(`confetti-${color}`);
+
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
+
+                document.body.appendChild(confetti);
+
+                setTimeout(() => {
+                    if (confetti.parentNode) {
+                        confetti.parentNode.removeChild(confetti);
+                    }
+                }, 4000);
+            }
+
+            // 폭죽 효과 시작 (더 자주, 더 화려하게)
+            const fireworkInterval = setInterval(createFirework, 200); // 더 자주
+            const sparkleInterval = setInterval(createSparkle, 100); // 더 자주
+            const confettiInterval = setInterval(createConfetti, 100); // 더 자주
+
+            // 추가 폭죽 효과 (더 화려하게)
+            const extraFireworkInterval = setInterval(() => {
+                createFirework();
+                createFirework(); // 동시에 2개씩
+            }, 400);
+
+            // 10초 후 효과 중단
+            setTimeout(() => {
+                clearInterval(fireworkInterval);
+                clearInterval(sparkleInterval);
+                clearInterval(confettiInterval);
+                clearInterval(extraFireworkInterval);
+            }, 10000);
+        }
+
+        // 초기화 실행
+        init();
+    </script>
+</body>
+
+</html>
