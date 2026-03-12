@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>손과 얼굴 인식</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection"></script>
+
+  <!-- 3D Game Library (Three.js) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://unpkg.com/fflate@0.7.4/umd/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/loaders/FBXLoader.js"></script>
+
+</head>
+
+<body>
+
+  <div id="game-container" style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1;"></div>
+
+  <div id="video-widget-container">
+    <h1>손 & 얼굴 인식</h1>
+    <div id="main-container">
+      <div id="container">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
+        <div id="warning-overlay">
+          <div id="warning-text"></div>
+        </div>
+      </div>
+    </div>
+    <div id="controls-container">
+      <div id="gesture-display" class="status-display">준비 중...</div>
+    </div>
+    <div id="square-container">
+      <div id="tiger-square" class="square"><img src="animal/호랑이.png" alt="Tiger"></div>
+      <div id="rabbit-square" class="square"><img src="animal/토끼.png" alt="Rabbit"></div>
+      <div id="snake-square" class="square"><img src="animal/뱀.png" alt="Snake"></div>
+      <div id="elephant-square" class="square"><img src="animal/코끼리.png" alt="Elephant"></div>
+    </div>
+  </div>
+
+  <div id="progress-bar-container">
+    <div id="rainbow-progress-bar"></div>
+    <div id="emoji-indicator"></div>
+  </div>
+
+  <!-- 게임 오버 오버레이 -->
+  <div id="game-over-overlay" style="display: none;">
+    <div class="game-over-container">
+      <div class="skull">💀</div>
+      <h1 class="game-over-title">Game Over</h1>
+      <p class="game-over-subtitle">장애물에 부딪혔습니다!</p>
+
+      <div class="game-over-buttons">
+        <button id="restart-btn" class="btn btn-primary">🔄 다시 플레이</button>
+        <a href="start.html" class="btn btn-home">🏠 타이틀로 돌아가기</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="hand-face-recognition.js"></script>
+  <script type="module" src="main.js"></script>
+  <audio id="game-music" src="music/desert-storm.wav" loop></audio>
+
+  <script>
+    // 게임 음악 재생 함수를 전역으로 설정
+    window.playGameMusic = function () {
+      const gameMusic = document.getElementById('game-music');
+      if (gameMusic && gameMusic.paused) {
+        gameMusic.play().catch(e => console.error("Game music playback failed:", e));
+        console.log("게임 음악이 시작되었습니다.");
+      }
+    };
+
+    // 페이지 로드 완료 후 사용자 상호작용 대기
+    document.addEventListener('DOMContentLoaded', function () {
+      // 사용자가 클릭하거나 키를 누르면 음악 재생 준비
+      document.addEventListener('click', window.playGameMusic, { once: true });
+      document.addEventListener('keydown', window.playGameMusic, { once: true });
+    });
+  </script>
+</body>
+
+</html>
