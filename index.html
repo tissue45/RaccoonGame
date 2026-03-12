@@ -5,6 +5,15 @@
   <meta charset="UTF-8">
   <title>라쿤게임</title>
   <link rel="stylesheet" href="style.css">
+  <script>
+    // 타이틀 화면(start.html)에서 진입한 경우에만 게임 본편을 보여준다.
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('from') !== 'start') {
+        window.location.replace('start.html');
+      }
+    })();
+  </script>
   <!-- Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>

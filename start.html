@@ -236,13 +236,13 @@
       if (whistleSound) {
         whistleSound.currentTime = 0;
         whistleSound.play().then(() => {
-          window.location.href = 'index.html';
+          window.location.href = 'index.html?from=start';
         }).catch(e => {
           console.error("Whistle playback failed:", e);
-          window.location.href = 'index.html';
+          window.location.href = 'index.html?from=start';
         });
       } else {
-        window.location.href = 'index.html';
+        window.location.href = 'index.html?from=start';
       }
     };
     loadingManager.onError = function (url) {
